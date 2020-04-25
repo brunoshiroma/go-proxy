@@ -1,9 +1,12 @@
 package server
 
 import (
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -81,6 +84,57 @@ func pipe(source net.Conn, dest net.Conn) {
 
 }
 
+func handleRedirect(req *http.Request, via []*http.Request) error {
+	return errors.New("REDIRECT")
+}
+
+func handleHttpRequest(conn net.Conn, requestString string) {
+	stringParts := strings.SplitN(requestString, "\n", -1)
+	stringConnect := strings.Split(stringParts[0], " ")
+
+	request, err := http.NewRequest(stringConnect[0], stringConnect[1], nil)
+
+	if err != nil {
+		log.Printf("ERROR handleHttpRequest %v", err)
+	}
+
+	client := &http.Client{
+		CheckRedirect: handleRedirect,
+	}
+
+	for _, parts := range stringParts[1 : len(stringParts)-1] {
+		if strings.Index(parts, ":") > 0 {
+			headerParts := strings.Split(parts, ": ")
+			request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
+		}
+	}
+
+	log.Printf("HTTP REQUEST %s", stringParts[0])
+	response, err := client.Do(request)
+
+	if err != nil {
+		log.Printf("ERROR handleHttpRequest %v", err)
+	}
+
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		log.Printf("ERROR handleHttpRequest %v", err)
+	}
+
+	defer conn.Close()
+
+	conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
+
+	for header := range response.Header {
+		conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", header, response.Header.Get(header))))
+	}
+
+	conn.Write([]byte("\r\n"))
+	conn.Write(body)
+}
+
 func handleConnection(conn net.Conn) {
 	bytes, err := readConn(conn)
 	if err != nil {
@@ -91,7 +145,6 @@ func handleConnection(conn net.Conn) {
 
 		if strings.HasPrefix(stringParts[0], "CONNECT ") {
 			stringConnect := strings.Split(stringParts[0], " ")
-
 			log.Printf("CONNECT to %v", stringConnect[1])
 			conn.Write([]byte("200 OK\r\n\r\n"))
 
@@ -100,9 +153,7 @@ func handleConnection(conn net.Conn) {
 
 			handleProxyConn(conn, stringConnect[1])
 		} else {
-			log.Printf("WARN NOT CONNECT PROXY")
-			conn.Write([]byte("404 NOT FOUND\r\n\r\n"))
-			conn.Close()
+			handleHttpRequest(conn, stringRequest)
 		}
 	}
 
