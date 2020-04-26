@@ -34,4 +34,4 @@ after_succes:
   script:
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
     - docker manifest create brunoshiroma/go-proxy:latest brunoshiroma/go-proxy:386-latest brunoshiroma/go-proxy:armv7-latest brunoshiroma/go-proxy:armv6-latest brunoshiroma/go-proxy:amd64-latest brunoshiroma/go-proxy:aarch64-latest
-    - docker push brunoshiroma/benchtool-java:latest
+    - docker push brunoshiroma/go-proxy:latest

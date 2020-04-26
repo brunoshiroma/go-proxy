@@ -3,11 +3,14 @@ package main
 import (
 	"log"
 	"os"
+	"runtime"
 	"server"
 	"strconv"
 )
 
 func main() {
+
+	log.Printf("Starting go-proxy on %s/%s", runtime.GOOS, runtime.GOARCH)
 
 	port, isSet := os.LookupEnv("PORT")
 
@@ -27,6 +30,5 @@ func main() {
 		log.Fatalf("ERROR PORT %v", err)
 	}
 
-	log.Println("Starting go-proxy")
 	server.InitHTTP(host, uint16(uintPort))
 }
