@@ -25,6 +25,7 @@ jobs:
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker buildx build --platform linux/arm/v7 -t brunoshiroma/go-proxy:armv7-latest .
+        - docker image ls
         - docker push brunoshiroma/go-proxy:armv7-latest
 
 #after_succes:
