@@ -25,9 +25,13 @@ jobs:
       script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
         - docker buildx build --platform linux/arm/v7 -t brunoshiroma/go-proxy:armv7-latest --push .
+        - docker buildx build --platform linux/arm/v6 -t brunoshiroma/go-proxy:armv6-latest --push .
+        - docker buildx build --platform linux/amd64 -t brunoshiroma/go-proxy:amd64-latest --push .
+        - docker buildx build --platform linux/arm64/v8 -t brunoshiroma/go-proxy:aarch64-latest --push .
+        - docker buildx build --platform linux/386 -t brunoshiroma/go-proxy:386-latest --push .
 
-#after_succes:
-#  script:
-#    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-#    - docker manifest create brunoshiroma/benchtool-java:latest brunoshiroma/benchtool-java:amd64-latest brunoshiroma/benchtool-java:arm64-latest
-#    - docker push brunoshiroma/benchtool-java:latest
+after_succes:
+  script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker manifest create brunoshiroma/go-proxy:latest brunoshiroma/go-proxy:386-latest brunoshiroma/go-proxy:armv7-latest brunoshiroma/go-proxy:armv6-latest brunoshiroma/go-proxy:amd64-latest brunoshiroma/go-proxy:aarch64-latest
+    - docker push brunoshiroma/benchtool-java:latest
