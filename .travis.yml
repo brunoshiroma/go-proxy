@@ -1,6 +1,6 @@
 dist: bionic
 
-language: golang
+language: minimal
 
 #FROM https://github.com/openhab/openhab-docker/blob/c5e586be529a9d3645e91962eba1ae20c3067cf8/.travis.yml#L16-L28
 before_install:
