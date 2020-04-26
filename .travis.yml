@@ -30,4 +30,4 @@ jobs:
         - docker buildx build --platform linux/arm64/v8 -t brunoshiroma/go-proxy:aarch64-latest --push .
         - docker buildx build --platform linux/386 -t brunoshiroma/go-proxy:386-latest --push .
         - docker manifest create brunoshiroma/go-proxy:latest brunoshiroma/go-proxy:386-latest brunoshiroma/go-proxy:armv7-latest brunoshiroma/go-proxy:armv6-latest brunoshiroma/go-proxy:amd64-latest brunoshiroma/go-proxy:aarch64-latest
-        - docker push brunoshiroma/go-proxy:latest
+        - docker manifest push brunoshiroma/go-proxy:latest
