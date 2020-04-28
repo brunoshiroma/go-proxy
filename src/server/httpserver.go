@@ -44,7 +44,6 @@ func pipe(source net.Conn, dest net.Conn) {
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-
 		//log.Printf("Pipe read %v from %v", read, source.RemoteAddr())
 
 		if err != nil {
@@ -88,51 +87,59 @@ func handleRedirect(req *http.Request, via []*http.Request) error {
 	return errors.New("REDIRECT")
 }
 
-func handleHttpRequest(conn net.Conn, requestString string) {
+func handleHTTPRequest(conn net.Conn, requestString string) {
 	stringParts := strings.SplitN(requestString, "\n", -1)
 	stringConnect := strings.Split(stringParts[0], " ")
+
+	defer conn.Close()
 
 	request, err := http.NewRequest(stringConnect[0], stringConnect[1], nil)
 
 	if err != nil {
 		log.Printf("ERROR handleHttpRequest %v", err)
-	}
+	} else {
 
-	client := &http.Client{
-		CheckRedirect: handleRedirect,
-	}
-
-	for _, parts := range stringParts[1 : len(stringParts)-1] {
-		if strings.Index(parts, ":") > 0 {
-			headerParts := strings.Split(parts, ": ")
-			request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
+		client := &http.Client{
+			CheckRedirect: handleRedirect,
 		}
+
+		for _, parts := range stringParts[1 : len(stringParts)-1] {
+			if strings.Index(parts, ":") > 0 {
+				headerParts := strings.Split(parts, ": ")
+				request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
+			}
+		}
+
+		log.Printf("HTTP REQUEST %s", stringParts[0])
+		response, err := client.Do(request)
+
+		if err != nil {
+			log.Printf("ERROR handleHttpRequest %v", err)
+
+		} else {
+
+			defer response.Body.Close()
+			body, err := ioutil.ReadAll(response.Body)
+
+			if err != nil {
+				log.Printf("ERROR handleHttpRequest %v", err)
+			} else {
+
+				conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
+
+				for header := range response.Header {
+					conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", header, response.Header.Get(header))))
+				}
+
+				conn.Write([]byte("\r\n"))
+				conn.Write(body)
+
+			}
+
+		}
+
 	}
 
-	log.Printf("HTTP REQUEST %s", stringParts[0])
-	response, err := client.Do(request)
-
-	if err != nil {
-		log.Printf("ERROR handleHttpRequest %v", err)
-	}
-
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-
-	if err != nil {
-		log.Printf("ERROR handleHttpRequest %v", err)
-	}
-
-	defer conn.Close()
-
-	conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
-
-	for header := range response.Header {
-		conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", header, response.Header.Get(header))))
-	}
-
-	conn.Write([]byte("\r\n"))
-	conn.Write(body)
 }
 
 func handleConnection(conn net.Conn) {
