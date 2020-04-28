@@ -160,7 +160,7 @@ func handleConnection(conn net.Conn) {
 
 			handleProxyConn(conn, stringConnect[1])
 		} else {
-			handleHttpRequest(conn, stringRequest)
+			handleHTTPRequest(conn, stringRequest)
 		}
 	}
 
