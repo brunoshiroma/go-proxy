@@ -8,7 +8,7 @@ ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 WORKDIR /proxy
 COPY . .
-RUN GOPATH=/proxy CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' cmd/go-proxy.go
+RUN GOPATH=/proxy CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' cmd/go-proxy/
 
 
 FROM --platform=$TARGETPLATFORM alpine AS runtime
