@@ -11,7 +11,15 @@ import (
 	"time"
 )
 
-func readConn(conn net.Conn) ([]byte, error) {
+/*
+ReadConn read all the data on conn, and return the bytes
+*/
+func ReadConn(conn net.Conn) ([]byte, error) {
+
+	if conn == nil {
+		return nil, nil
+	}
+
 	fixedBuffer := make([]byte, 1024)
 
 	read, err := conn.Read(fixedBuffer)
@@ -143,7 +151,7 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 }
 
 func handleConnection(conn net.Conn) {
-	bytes, err := readConn(conn)
+	bytes, err := ReadConn(conn)
 	if err != nil {
 		log.Printf("ERROR on handleConnection %v", err)
 	} else {
