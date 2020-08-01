@@ -1,6 +1,19 @@
-steps:
-    - uses: actions/checkout@master
-    - uses: actions/setup-go@v1
-      with:
-        go-version: '1.14.2'
-    - run: go test ./...
+name: CI
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@master
+            - uses: actions/setup-go@v1
+            with:
+                go-version: '1.14.2'
+            - run: go build -a -ldflags '-extldflags "-static"' ./cmd/go-proxy/
+    test:
+      runs-on: ubuntu-latest
+      steps:
+          - uses: actions/checkout@master
+          - uses: actions/setup-go@v1
+          with:
+              go-version: '1.14.2'
+          - run: go test ./...
