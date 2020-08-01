@@ -4,7 +4,7 @@ RUN apk add build-base
 FROM build-base as build
 WORKDIR /proxy
 COPY . .
-RUN GOPATH=/proxy CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' cmd/go-proxy.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' ./cmd/go-proxy/
 
 FROM alpine AS runtime
 

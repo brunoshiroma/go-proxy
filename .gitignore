@@ -2,6 +2,8 @@
 .vscode
 
 #golang
-go-proxy
 pkg
 bin
+
+#binary
+go-proxy

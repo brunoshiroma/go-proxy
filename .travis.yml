@@ -1,6 +1,9 @@
 dist: bionic
 
-language: minimal
+language: go
+
+go:
+  - "1.14.6"
 
 #FROM https://github.com/openhab/openhab-docker/blob/c5e586be529a9d3645e91962eba1ae20c3067cf8/.travis.yml#L16-L28
 before_install:
@@ -18,9 +21,34 @@ before_install:
   - docker buildx create --name builder --use
   - docker buildx ls
 
+stages:
+  - compile
+  - test
+  - deploy
+
 jobs:
   include:
-    - if: branch = master
+    - stage: compile
+      name: GO Compile
+      os: linux
+      arch: amd64
+      script:
+          - go build cmd/go-proxy/main.go
+    - stage: test
+      name: GO Test
+      os: linux
+      arch: amd64
+      script:
+          - go test ./...
+    - stage: test
+      name: Docker build
+      os: linux
+      arch: amd64
+      script:
+          - docker buildx build --platform linux/amd64 .
+    - stage: deploy
+      name: Docker Build and Repository Push
+      if: branch = master and type = push
       os: linux
       arch: amd64
       script:
