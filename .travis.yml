@@ -45,7 +45,7 @@ jobs:
       os: linux
       arch: amd64
       script:
-          - docker build .
+          - docker buildx build --platform linux/amd64
     - stage: deploy
       name: Docker Build and Repository Push
       if: branch = master and type = push
