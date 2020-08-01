@@ -1,6 +1,9 @@
 dist: bionic
 
-language: minimal
+language: go
+
+go:
+  - "1.14.6"
 
 #FROM https://github.com/openhab/openhab-docker/blob/c5e586be529a9d3645e91962eba1ae20c3067cf8/.travis.yml#L16-L28
 before_install:
@@ -19,8 +22,14 @@ before_install:
   - docker buildx ls
 
 jobs:
+  test:
+    os: linux
+    arch: amd64
+    script:
+        - go build cmd/go-proxy/main.go
+        - go test ./...
   include:
-    - if: branch = master
+    - if: branch = master and type = push
       os: linux
       arch: amd64
       script:
