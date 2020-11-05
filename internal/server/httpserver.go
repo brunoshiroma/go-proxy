@@ -1,15 +1,28 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
+
+type redirect interface {
+	Redirect() (int, string)
+}
+
+type redirectError struct {
+	status   int
+	location string
+}
+
+func (e *redirectError) Error() string {
+	return fmt.Sprintf("%v %v", e.status, e.location)
+}
 
 /*
 ReadConn read all the data on conn, and return the bytes
@@ -92,7 +105,22 @@ func pipe(source net.Conn, dest net.Conn) {
 }
 
 func handleRedirect(req *http.Request, via []*http.Request) error {
-	return errors.New("REDIRECT")
+	//handling redirect
+	if req.Response.StatusCode == 301 || req.Response.StatusCode == 302 {
+		location := req.Response.Header["Location"]
+		if location != nil && len(location) > 0 {
+			newLocation := location[0]
+			return &redirectError{
+				status:   req.Response.StatusCode,
+				location: newLocation,
+			}
+		}
+	}
+
+	if len(via) > 2 {
+		return fmt.Errorf("max 2 hops")
+	}
+	return nil
 }
 
 func handleHTTPRequest(conn net.Conn, requestString string) {
@@ -114,7 +142,9 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 		for _, parts := range stringParts[1 : len(stringParts)-1] {
 			if strings.Index(parts, ":") > 0 {
 				headerParts := strings.Split(parts, ": ")
-				request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
+				if len(headerParts) > 1 {
+					request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
+				}
 			}
 		}
 
@@ -122,7 +152,17 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 		response, err := client.Do(request)
 
 		if err != nil {
-			log.Printf("ERROR handleHttpRequest %v", err)
+
+			if data, ok := err.(*url.Error); ok {
+				if e, ok := data.Err.(*redirectError); ok {
+					conn.Write([]byte(fmt.Sprintf("%s %d\r\n", "HTTP/1.0", e.status)))
+					conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", "Location", e.location)))
+				} else {
+					log.Printf("ERROR handleHttpRequest %v", err)
+				}
+			} else {
+				log.Printf("ERROR handleHttpRequest %v", err)
+			}
 
 		} else {
 
@@ -200,6 +240,8 @@ func InitHTTP(host string, port uint16) {
 
 		for {
 			conn, err := l.Accept()
+
+			defer conn.Close()
 
 			if err != nil {
 				log.Printf("ERROR ON ACCEPT %v", err)

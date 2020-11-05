@@ -3,14 +3,14 @@
 
 
 # Simple HTTPS Proxy - Written in Go
+Developed with go
+```
+go version go1.15.3 linux/amd64
+```
 
 Simple HTTPS proxy, using CONNECT pattern
 
 And with Goroutines =)
-
-## TODO
-
-Make HTTP proxy work too
 
 ## USAGE
 
@@ -19,5 +19,5 @@ Simple run the proxy
 with binary
 ./go-proxy
 OR from source
-go run cmd/go-proxy.go
+go run cmd/go-proxy/main.go
 ```
