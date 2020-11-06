@@ -33,7 +33,7 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 		return nil, nil
 	}
 
-	fixedBuffer := make([]byte, 1024)
+	fixedBuffer := make([]byte, 10240)
 
 	read, err := conn.Read(fixedBuffer)
 	if err != nil {
@@ -50,21 +50,34 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 
 func pipe(source net.Conn, dest net.Conn) {
 
-	source.SetDeadline(time.Now().Add(time.Second * 30))
-	dest.SetDeadline(time.Now().Add(time.Second * 30))
+	source.SetDeadline(time.Now().Add(time.Second * 15))
+	dest.SetDeadline(time.Now().Add(time.Second * 15))
+
+	var tryReadCount = 10
 
 	for {
 
-		buffer := make([]byte, 1024)
+		buffer := make([]byte, 1024*10)
 		var read int
 		var err error
 
 		read, err = source.Read(buffer)
 
 		if read <= 0 {
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(1000 * time.Millisecond)
+			tryReadCount -= 1
+
+			if tryReadCount <= 0 {
+				source.Close()
+				dest.Close()
+				log.Printf("Closing conn because inactivity, %v %v", source.LocalAddr(), dest.RemoteAddr())
+				break
+			}
+
 			continue
 		}
+		//reset try read count
+		tryReadCount = 10
 		//log.Printf("Pipe read %v from %v", read, source.RemoteAddr())
 
 		if err != nil {
@@ -194,6 +207,7 @@ func handleConnection(conn net.Conn) {
 	bytes, err := ReadConn(conn)
 	if err != nil {
 		log.Printf("ERROR on handleConnection %v", err)
+		conn.Close()
 	} else {
 		stringRequest := string(bytes)
 		stringParts := strings.SplitN(stringRequest, "\n", -1)
@@ -201,7 +215,7 @@ func handleConnection(conn net.Conn) {
 		if strings.HasPrefix(stringParts[0], "CONNECT ") {
 			stringConnect := strings.Split(stringParts[0], " ")
 			log.Printf("CONNECT to %v", stringConnect[1])
-			conn.Write([]byte("200 OK\r\n\r\n"))
+			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 			bytes = nil
 			stringParts = nil
@@ -216,6 +230,7 @@ func handleConnection(conn net.Conn) {
 
 func handleProxyConn(source net.Conn, dest string) {
 	remoteConn, err := net.DialTimeout("tcp", dest, time.Second*30)
+
 	if err != nil {
 		log.Printf("ERROR handleProxyConn %v", err)
 	} else {
@@ -241,11 +256,11 @@ func InitHTTP(host string, port uint16) {
 		for {
 			conn, err := l.Accept()
 
-			defer conn.Close()
-
 			if err != nil {
 				log.Printf("ERROR ON ACCEPT %v", err)
 			} else {
+				defer conn.Close()
+
 				go handleConnection(conn)
 			}
 
