@@ -21,3 +21,10 @@ with binary
 OR from source
 go run cmd/go-proxy/main.go
 ```
+
+### ENV VARS
+```bash
+GO_PROXY_PPROF_DEBUG=true #enable the PPROF profiling on 127.0.0.1:6060
+HOST=0.0.0.0 #set the host/ip to bind the listening proxy address
+PORT=8080 #set the port for the binding
+```

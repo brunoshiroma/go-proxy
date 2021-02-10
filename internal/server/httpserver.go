@@ -38,6 +38,7 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 	read, err := conn.Read(fixedBuffer)
 	if err != nil {
 		log.Printf("ERROR readConn %v", err)
+		fixedBuffer = nil
 		return nil, err
 	}
 
@@ -53,11 +54,14 @@ func pipe(source net.Conn, dest net.Conn) {
 	source.SetDeadline(time.Now().Add(time.Second * 60))
 	dest.SetDeadline(time.Now().Add(time.Second * 60))
 
+	defer source.Close()
+	defer dest.Close()
+
 	var tryReadCount = 10
 
 	for {
 
-		buffer := make([]byte, 1024*1024)
+		buffer := make([]byte, 1024*128)
 		var read int
 		var err error
 
@@ -68,8 +72,6 @@ func pipe(source net.Conn, dest net.Conn) {
 			tryReadCount -= 1
 
 			if tryReadCount <= 0 {
-				source.Close()
-				dest.Close()
 				log.Printf("Closing conn because inactivity, %v %v", source.LocalAddr(), dest.RemoteAddr())
 				break
 			}
@@ -78,7 +80,6 @@ func pipe(source net.Conn, dest net.Conn) {
 		}
 		//reset try read count
 		tryReadCount = 1000
-		//log.Printf("Pipe read %v from %v", read, source.RemoteAddr())
 
 		if err != nil {
 			if err.Error() != "EOF" {
@@ -143,22 +144,16 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 	stringRequestContentParts := strings.SplitN(requestString, "\r\n\r\n", -1) // request content most have 2 new lines
 
 	defer conn.Close()
-	
+
 	var request *http.Request = nil
 	var err error = nil
-	
+
 	if len(stringRequestContentParts) > 1 {
 		stringRequestContent := stringRequestContentParts[1]
-		log.Printf("Sending request content %v", stringRequestContent)
-		request, err = http.NewRequest(stringConnect[0], stringConnect[1], strings.NewReader(stringRequestContent) )
+		request, err = http.NewRequest(stringConnect[0], stringConnect[1], strings.NewReader(stringRequestContent))
 	} else {
-		request, err = http.NewRequest(stringConnect[0], stringConnect[1], nil )
+		request, err = http.NewRequest(stringConnect[0], stringConnect[1], nil)
 	}
-	
-
-	
-
-	log.Printf("Request raw content %v", requestString)
 
 	if err != nil {
 		log.Printf("ERROR handleHttpRequest %v", err)
@@ -172,7 +167,6 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 			if strings.Index(parts, ":") > 0 {
 				headerParts := strings.Split(parts, ": ")
 				if len(headerParts) > 1 {
-					log.Printf("Request Header %v %v", headerParts[0], strings.Trim(headerParts[1], "\r") )
 					request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
 				}
 			}
@@ -204,10 +198,8 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 			} else {
 
 				conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
-				log.Printf("Response %v %v", response.Proto, response.StatusCode)
 
 				for header := range response.Header {
-					log.Printf("Response Header %v %v", header, response.Header.Get(header) )
 					conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", header, response.Header.Get(header))))
 				}
 

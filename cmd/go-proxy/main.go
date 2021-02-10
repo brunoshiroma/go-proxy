@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"runtime"
 	"strconv"
@@ -23,6 +25,14 @@ func main() {
 
 	if !isSet {
 		host = "127.0.0.1"
+	}
+
+	debug, isSet := os.LookupEnv("GO_PROXY_PPROF_DEBUG")
+
+	if isSet && debug == "true" {
+		go func() {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}()
 	}
 
 	uintPort, err := strconv.ParseUint(port, 10, 16)
