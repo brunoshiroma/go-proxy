@@ -38,6 +38,7 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 	read, err := conn.Read(fixedBuffer)
 	if err != nil {
 		log.Printf("ERROR readConn %v", err)
+		fixedBuffer = nil
 		return nil, err
 	}
 
@@ -50,14 +51,17 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 
 func pipe(source net.Conn, dest net.Conn) {
 
-	source.SetDeadline(time.Now().Add(time.Second * 15))
-	dest.SetDeadline(time.Now().Add(time.Second * 15))
+	source.SetDeadline(time.Now().Add(time.Second * 60))
+	dest.SetDeadline(time.Now().Add(time.Second * 60))
+
+	defer source.Close()
+	defer dest.Close()
 
 	var tryReadCount = 10
 
 	for {
 
-		buffer := make([]byte, 1024*10)
+		buffer := make([]byte, 1024*128)
 		var read int
 		var err error
 
@@ -68,8 +72,6 @@ func pipe(source net.Conn, dest net.Conn) {
 			tryReadCount -= 1
 
 			if tryReadCount <= 0 {
-				source.Close()
-				dest.Close()
 				log.Printf("Closing conn because inactivity, %v %v", source.LocalAddr(), dest.RemoteAddr())
 				break
 			}
@@ -77,8 +79,7 @@ func pipe(source net.Conn, dest net.Conn) {
 			continue
 		}
 		//reset try read count
-		tryReadCount = 10
-		//log.Printf("Pipe read %v from %v", read, source.RemoteAddr())
+		tryReadCount = 1000
 
 		if err != nil {
 			if err.Error() != "EOF" {
@@ -140,9 +141,19 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 	stringParts := strings.SplitN(requestString, "\n", -1)
 	stringConnect := strings.Split(stringParts[0], " ")
 
+	stringRequestContentParts := strings.SplitN(requestString, "\r\n\r\n", -1) // request content most have 2 new lines
+
 	defer conn.Close()
 
-	request, err := http.NewRequest(stringConnect[0], stringConnect[1], nil)
+	var request *http.Request = nil
+	var err error = nil
+
+	if len(stringRequestContentParts) > 1 {
+		stringRequestContent := stringRequestContentParts[1]
+		request, err = http.NewRequest(stringConnect[0], stringConnect[1], strings.NewReader(stringRequestContent))
+	} else {
+		request, err = http.NewRequest(stringConnect[0], stringConnect[1], nil)
+	}
 
 	if err != nil {
 		log.Printf("ERROR handleHttpRequest %v", err)
