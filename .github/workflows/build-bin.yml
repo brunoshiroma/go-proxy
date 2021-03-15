@@ -18,20 +18,18 @@ jobs:
       name: release
       steps:
         - uses: actions/checkout@v2
-        - name: Install mingw
-          run: sudo apt-get install gcc-multilib gcc-mingw-w64 -y
         - name: Setup go
           uses: actions/setup-go@v2
           with:
             go-version: 1.14.2
         - name: build windows x64
-          run: GOOS=windows GOARCH=amd64 go build -ldflags "-linkmode external -extldflags -static" -o go-proxy-win-x64.exe cmd/go-proxy/main.go
+          run: GOOS=windows GOARCH=amd64 go build -o go-proxy-win-x64.exe cmd/go-proxy/main.go
         - name: build windows
-          run: GOOS=windows GOARCH=386 go build -ldflags "-linkmode external -extldflags -static" -o go-proxy-win.exe cmd/go-proxy/main.go
+          run: GOOS=windows GOARCH=386 go build -o go-proxy-win.exe cmd/go-proxy/main.go
         - name: build linux x64
-          run: GOOS=linux GOARCH=amd64 go build -ldflags "-linkmode external -extldflags -static" -o go-proxy-linux-x64.exe cmd/go-proxy/main.go
+          run: GOOS=linux GOARCH=amd64 go build -o go-proxy-linux-x64.exe cmd/go-proxy/main.go
         - name: build linux
-          run: GOOS=linux GOARCH=386 go build -ldflags "-linkmode external -extldflags -static" -o go-proxy-linux cmd/go-proxy/main.go
+          run: GOOS=linux GOARCH=386 go build -o go-proxy-linux cmd/go-proxy/main.go
         - name: Archive production artifacts
           uses: actions/upload-artifact@v2
           with:
