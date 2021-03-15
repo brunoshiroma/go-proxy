@@ -21,7 +21,7 @@ jobs:
         - name: Setup go
           uses: actions/setup-go@v2
           with:
-            go-version: 1.14.2
+            go-version: 1.16.2
         - name: build windows amd64
           run: GOOS=windows GOARCH=amd64 go build -o go-proxy-win-x64.exe cmd/go-proxy/main.go
         - name: build windows i386
@@ -30,6 +30,14 @@ jobs:
           run: GOOS=linux GOARCH=amd64 go build -o go-proxy-linux-x64 cmd/go-proxy/main.go
         - name: build linux i386
           run: GOOS=linux GOARCH=386 go build -o go-proxy-linux cmd/go-proxy/main.go
+        - name: build linux arm
+          run: GOOS=linux GOARCH=arm go build -o go-proxy-linux-arm cmd/go-proxy/main.go
+        - name: build linux arm64
+          run: GOOS=linux GOARCH=arm64 go build -o go-proxy-linux-arm64 cmd/go-proxy/main.go
+        - name: build mac amd64
+          run: GOOS=darwin GOARCH=amd64 go build -o go-proxy-mac-amd64 cmd/go-proxy/main.go
+        - name: build mac arm64
+          run: GOOS=darwin GOARCH=arm64 go build -o go-proxy-mac-arm64 cmd/go-proxy/main.go
         - name: Archive production artifacts Windows amd64
           uses: actions/upload-artifact@v2
           with:
@@ -50,4 +58,24 @@ jobs:
           with:
             name: linux-i386
             path: go-proxy-linux
+        - name: Archive production artifacts Linux arm
+          uses: actions/upload-artifact@v2
+          with:
+            name: linux-arm
+            path: go-proxy-linux-arm
+        - name: Archive production artifacts Linux arm64
+          uses: actions/upload-artifact@v2
+          with:
+            name: linux-arm64
+            path: go-proxy-linux-arm64
+        - name: Archive production artifacts Mac amd64
+          uses: actions/upload-artifact@v2
+          with:
+            name: mac-amd64
+            path: go-proxy-mac-amd64
+        - name: Archive production artifacts Mac arm64
+          uses: actions/upload-artifact@v2
+          with:
+            name: mac-arm64
+            path: go-proxy-mac-arm64
                
