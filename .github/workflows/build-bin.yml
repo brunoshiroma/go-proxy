@@ -1,4 +1,4 @@
-name: CI
+name: Release Binaries
 
 on: [push, pull_request]
 
@@ -19,7 +19,7 @@ jobs:
       steps:
         - uses: actions/checkout@v2
         - name: Install mingw
-          run: apt-get install gcc-multilib gcc-mingw-w64 -y
+          run: sudo apt-get install gcc-multilib gcc-mingw-w64 -y
         - name: Setup go
           uses: actions/setup-go@v2
           with:
