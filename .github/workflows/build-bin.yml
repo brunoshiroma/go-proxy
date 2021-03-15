@@ -22,18 +22,32 @@ jobs:
           uses: actions/setup-go@v2
           with:
             go-version: 1.14.2
-        - name: build windows x64
+        - name: build windows amd64
           run: GOOS=windows GOARCH=amd64 go build -o go-proxy-win-x64.exe cmd/go-proxy/main.go
-        - name: build windows
+        - name: build windows i386
           run: GOOS=windows GOARCH=386 go build -o go-proxy-win.exe cmd/go-proxy/main.go
-        - name: build linux x64
-          run: GOOS=linux GOARCH=amd64 go build -o go-proxy-linux-x64.exe cmd/go-proxy/main.go
-        - name: build linux
+        - name: build linux amd64
+          run: GOOS=linux GOARCH=amd64 go build -o go-proxy-linux-x64 cmd/go-proxy/main.go
+        - name: build linux i386
           run: GOOS=linux GOARCH=386 go build -o go-proxy-linux cmd/go-proxy/main.go
-        - name: Archive production artifacts
+        - name: Archive production artifacts Windows amd64
           uses: actions/upload-artifact@v2
           with:
-            name: binaries-release
-            path: |
-              go-proxy-*
+            name: windows-amd64
+            path: go-proxy-win-x64.exe
+        - name: Archive production artifacts Windows i386
+          uses: actions/upload-artifact@v2
+          with:
+            name: windows-i386
+            path: go-proxy-win.exe
+        - name: Archive production artifacts Linux amd64
+          uses: actions/upload-artifact@v2
+          with:
+            name: linux-amd64
+            path: go-proxy-linux-x64
+        - name: Archive production artifacts Linux i386
+          uses: actions/upload-artifact@v2
+          with:
+            name: linux-i386
+            path: go-proxy-linux
                
