@@ -1,5 +1,5 @@
   
-name: Test and coverage
+name: codecov - Test and coverage
 
 on: [push, pull_request]
 
