@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -33,7 +34,7 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 		return nil, nil
 	}
 
-	fixedBuffer := make([]byte, 10240)
+	fixedBuffer := make([]byte, 1024*10)
 
 	read, err := conn.Read(fixedBuffer)
 	if err != nil {
@@ -50,69 +51,48 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 }
 
 func pipe(source net.Conn, dest net.Conn) {
-
+	var (
+		read int
+		err  error
+	)
 	source.SetDeadline(time.Now().Add(time.Second * 60))
 	dest.SetDeadline(time.Now().Add(time.Second * 60))
 
 	defer source.Close()
 	defer dest.Close()
 
-	var tryReadCount = 10
-
 	for {
 
-		buffer := make([]byte, 1024*128)
-		var read int
-		var err error
+		buffer := make([]byte, 1024*10)
 
 		read, err = source.Read(buffer)
 
-		if read <= 0 {
-			time.Sleep(1000 * time.Millisecond)
-			tryReadCount -= 1
-
-			if tryReadCount <= 0 {
-				log.Printf("Closing conn because inactivity, %v %v", source.LocalAddr(), dest.RemoteAddr())
-				break
+		if err != nil {
+			if err == io.EOF {
+				log.Printf("INFO EOF")
+			} else if strings.Contains(err.Error(), "poll.DeadlineExceededError") {
+				log.Printf("INFO timeout")
+			} else {
+				log.Printf("ERROR on reading from tcp %#v src=%#v dst=%#v", err, source.RemoteAddr().String(), dest.RemoteAddr().String())
 			}
-
-			continue
+			break
 		}
-		//reset try read count
-		tryReadCount = 1000
+
+		bufferToWrite := make([]byte, read)
+		copy(bufferToWrite, buffer)
+		_, err := dest.Write(bufferToWrite)
+
+		bufferToWrite = nil
+		buffer = nil
 
 		if err != nil {
-			if err.Error() != "EOF" {
-				log.Printf("Error on reading from remote client %v", err)
-
-				source.Close()
-				dest.Close()
-
+			if err != io.EOF {
+				log.Printf("Error on writing on remote host %v", err)
 				return
 			}
-		} else {
-			bufferToWrite := make([]byte, read)
-			copy(bufferToWrite, buffer)
-			_, err := dest.Write(bufferToWrite)
-
-			bufferToWrite = nil
-			buffer = nil
-
-			//log.Printf("Pipe write %v to %v", read, dest.RemoteAddr())
-
-			if err != nil {
-				if err.Error() != "EOF" {
-					log.Printf("Error on writing on remote host %v", err)
-
-					source.Close()
-					dest.Close()
-
-					return
-				}
-			}
+			source.Close()
+			dest.Close()
 		}
-
-		buffer = nil
 
 	}
 
