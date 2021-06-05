@@ -25,6 +25,15 @@ OR from source
 go run cmd/go-proxy/main.go
 ```
 
+## Stress test
+Stress tests using [k6](https://k6.io), tests are located on folder k6.  
+Running with docker ( with make )
+```bash
+make run-k6-docker-http
+# OR
+make run-k6-docker-https
+```
+
 ### ENV VARS
 ```bash
 GO_PROXY_PPROF_DEBUG=true #enable the PPROF profiling on 127.0.0.1:6060

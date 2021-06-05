@@ -21,6 +21,12 @@ type redirectError struct {
 	location string
 }
 
+var (
+	httpClient = &http.Client{
+		CheckRedirect: handleRedirect,
+	}
+)
+
 func (e *redirectError) Error() string {
 	return fmt.Sprintf("%v %v", e.status, e.location)
 }
@@ -60,10 +66,9 @@ func pipe(source net.Conn, dest net.Conn) {
 
 	defer source.Close()
 	defer dest.Close()
+	buffer := make([]byte, 1024*10)
 
 	for {
-
-		buffer := make([]byte, 1024*10)
 
 		read, err = source.Read(buffer)
 
@@ -139,10 +144,6 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 		log.Printf("ERROR handleHttpRequest %v", err)
 	} else {
 
-		client := &http.Client{
-			CheckRedirect: handleRedirect,
-		}
-
 		for _, parts := range stringParts[1 : len(stringParts)-1] {
 			if strings.Index(parts, ":") > 0 {
 				headerParts := strings.Split(parts, ": ")
@@ -153,7 +154,7 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 		}
 
 		log.Printf("HTTP REQUEST %s", stringParts[0])
-		response, err := client.Do(request)
+		response, err := httpClient.Do(request)
 
 		if err != nil {
 
@@ -203,7 +204,7 @@ func handleConnection(conn net.Conn) {
 		stringRequest := string(bytes)
 		stringParts := strings.SplitN(stringRequest, "\n", -1)
 
-		if strings.HasPrefix(stringParts[0], "CONNECT ") {
+		if strings.HasPrefix(stringParts[0], "CONNECT ") { //https
 			stringConnect := strings.Split(stringParts[0], " ")
 			log.Printf("CONNECT to %v", stringConnect[1])
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
@@ -212,7 +213,7 @@ func handleConnection(conn net.Conn) {
 			stringParts = nil
 
 			handleProxyConn(conn, stringConnect[1])
-		} else {
+		} else { // http
 			handleHTTPRequest(conn, stringRequest)
 		}
 	}
