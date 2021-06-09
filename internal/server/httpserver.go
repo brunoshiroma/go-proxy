@@ -17,6 +17,8 @@ type redirectError struct {
 	location string
 }
 
+const HTTP_HANDLE_ERROR_STR = "ERROR handleHttpRequest %v"
+
 var (
 	httpClient = &http.Client{
 		CheckRedirect: handleRedirect,
@@ -127,37 +129,16 @@ func handleRedirect(req *http.Request, via []*http.Request) error {
 }
 
 func handleHTTPRequest(conn net.Conn, requestString string) {
-	stringParts := strings.SplitN(requestString, "\n", -1)
-	stringConnect := strings.Split(stringParts[0], " ")
-
-	stringRequestContentParts := strings.SplitN(requestString, "\r\n\r\n", -1) // request content most have 2 new lines
 
 	defer conn.Close()
 
-	var request *http.Request = nil
-	var err error = nil
-
-	if len(stringRequestContentParts) > 1 {
-		stringRequestContent := stringRequestContentParts[1]
-		request, err = http.NewRequest(stringConnect[0], stringConnect[1], strings.NewReader(stringRequestContent))
-	} else {
-		request, err = http.NewRequest(stringConnect[0], stringConnect[1], nil)
-	}
+	request, err := parseHttpRequestString(requestString)
 
 	if err != nil {
-		log.Printf("ERROR handleHttpRequest %v", err)
+		log.Printf(HTTP_HANDLE_ERROR_STR, err)
 	} else {
 
-		for _, parts := range stringParts[1 : len(stringParts)-1] {
-			if strings.Index(parts, ":") > 0 {
-				headerParts := strings.Split(parts, ": ")
-				if len(headerParts) > 1 {
-					request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
-				}
-			}
-		}
-
-		log.Printf("HTTP REQUEST %s", stringParts[0])
+		log.Printf("HTTP REQUEST %s", request.URL)
 		response, err := httpClient.Do(request)
 
 		if err != nil {
@@ -167,10 +148,10 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 					conn.Write([]byte(fmt.Sprintf("%s %d\r\n", "HTTP/1.0", e.status)))
 					conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", "Location", e.location)))
 				} else {
-					log.Printf("ERROR handleHttpRequest %v", err)
+					log.Printf(HTTP_HANDLE_ERROR_STR, err)
 				}
 			} else {
-				log.Printf("ERROR handleHttpRequest %v", err)
+				log.Printf(HTTP_HANDLE_ERROR_STR, err)
 			}
 
 		} else {
@@ -179,7 +160,7 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 			body, err := ioutil.ReadAll(response.Body)
 
 			if err != nil {
-				log.Printf("ERROR handleHttpRequest %v", err)
+				log.Printf(HTTP_HANDLE_ERROR_STR, err)
 			} else {
 
 				conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
@@ -197,6 +178,38 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 
 	}
 
+}
+
+func parseHttpRequestString(requestString string) (request *http.Request, err error) {
+	stringParts := strings.SplitN(requestString, "\n", -1)
+	stringConnect := strings.Split(stringParts[0], " ")
+
+	if len(stringConnect) <= 1 {
+		err = fmt.Errorf("INVALID REQUEST STRING %v", requestString)
+		return
+	}
+
+	stringRequestContentParts := strings.SplitN(requestString, "\r\n\r\n", -1) // request content most have 2 new lines
+	if len(stringRequestContentParts) > 1 {
+		stringRequestContent := stringRequestContentParts[1]
+		request, err = http.NewRequest(stringConnect[0], stringConnect[1], strings.NewReader(stringRequestContent))
+	} else {
+		request, err = http.NewRequest(stringConnect[0], stringConnect[1], nil)
+	}
+
+	if err != nil {
+		return
+	}
+
+	for _, parts := range stringParts[1 : len(stringParts)-1] {
+		if strings.Index(parts, ":") > 0 {
+			headerParts := strings.Split(parts, ": ")
+			if len(headerParts) > 1 {
+				request.Header.Add(headerParts[0], strings.Trim(headerParts[1], "\r"))
+			}
+		}
+	}
+	return
 }
 
 func handleConnection(conn net.Conn) {
