@@ -12,10 +12,6 @@ import (
 	"time"
 )
 
-type redirect interface {
-	Redirect() (int, string)
-}
-
 type redirectError struct {
 	status   int
 	location string
@@ -25,6 +21,7 @@ var (
 	httpClient = &http.Client{
 		CheckRedirect: handleRedirect,
 	}
+	tcpTimeoutSecs int32 = 30
 )
 
 func (e *redirectError) Error() string {
@@ -61,12 +58,11 @@ func pipe(source net.Conn, dest net.Conn) {
 		read int
 		err  error
 	)
-	source.SetDeadline(time.Now().Add(time.Second * 60))
-	dest.SetDeadline(time.Now().Add(time.Second * 60))
+	source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
 
 	defer source.Close()
 	defer dest.Close()
-	buffer := make([]byte, 1024*10)
+	buffer := make([]byte, 1024*1024)
 
 	for {
 
@@ -83,12 +79,19 @@ func pipe(source net.Conn, dest net.Conn) {
 			break
 		}
 
+		if read <= 0 {
+			time.Sleep(time.Millisecond * 100)
+			continue
+		}
+		source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
+
 		bufferToWrite := make([]byte, read)
 		copy(bufferToWrite, buffer)
+		dest.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
 		_, err := dest.Write(bufferToWrite)
 
 		bufferToWrite = nil
-		buffer = nil
+		//buffer = nil
 
 		if err != nil {
 			if err != io.EOF {
@@ -97,6 +100,7 @@ func pipe(source net.Conn, dest net.Conn) {
 			}
 			source.Close()
 			dest.Close()
+			break
 		}
 
 	}
@@ -107,7 +111,7 @@ func handleRedirect(req *http.Request, via []*http.Request) error {
 	//handling redirect
 	if req.Response.StatusCode == 301 || req.Response.StatusCode == 302 {
 		location := req.Response.Header["Location"]
-		if location != nil && len(location) > 0 {
+		if len(location) > 0 {
 			newLocation := location[0]
 			return &redirectError{
 				status:   req.Response.StatusCode,
@@ -251,8 +255,6 @@ func InitHTTP(host string, port uint16) {
 			if err != nil {
 				log.Printf("ERROR ON ACCEPT %v", err)
 			} else {
-				defer conn.Close()
-
 				go handleConnection(conn)
 			}
 
