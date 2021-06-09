@@ -1,0 +1,45 @@
+---
+name: "tagged-release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release-bin:
+      runs-on: ubuntu-latest
+      name: release
+      steps:
+        - uses: actions/checkout@v2
+        - name: Setup go
+          uses: actions/setup-go@v2
+          with:
+            go-version: 1.16.2
+        - name: build windows amd64
+          run: GOOS=windows GOARCH=amd64 go build -o go-proxy-win-x64.exe cmd/go-proxy/main.go
+        - name: build windows i386
+          run: GOOS=windows GOARCH=386 go build -o go-proxy-win.exe cmd/go-proxy/main.go
+        - name: build linux amd64
+          run: GOOS=linux GOARCH=amd64 go build -o go-proxy-linux-x64 cmd/go-proxy/main.go
+        - name: build linux i386
+          run: GOOS=linux GOARCH=386 go build -o go-proxy-linux cmd/go-proxy/main.go
+        - name: build linux arm
+          run: GOOS=linux GOARCH=arm go build -o go-proxy-linux-arm cmd/go-proxy/main.go
+        - name: build linux arm64
+          run: GOOS=linux GOARCH=arm64 go build -o go-proxy-linux-arm64 cmd/go-proxy/main.go
+        - name: build mac amd64
+          run: GOOS=darwin GOARCH=amd64 go build -o go-proxy-mac-amd64 cmd/go-proxy/main.go
+        - name: build mac arm64
+          run: GOOS=darwin GOARCH=arm64 go build -o go-proxy-mac-arm64 cmd/go-proxy/main.go
+  tagged-release:
+    name: "Tagged Release"
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          prerelease: false
+          files: |
+            go-proxy-*
