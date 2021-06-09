@@ -7,7 +7,7 @@ on:
       - "v*"
 
 jobs:
-  release-bin:
+  tagged-release:
       runs-on: ubuntu-latest
       name: release
       steps:
@@ -32,14 +32,9 @@ jobs:
           run: GOOS=darwin GOARCH=amd64 go build -o go-proxy-mac-amd64 cmd/go-proxy/main.go
         - name: build mac arm64
           run: GOOS=darwin GOARCH=arm64 go build -o go-proxy-mac-arm64 cmd/go-proxy/main.go
-  tagged-release:
-    name: "Tagged Release"
-    runs-on: "ubuntu-latest"
-
-    steps:
-      - uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          prerelease: false
-          files: |
-            go-proxy-*
+        - uses: "marvinpinto/action-automatic-releases@latest"
+          with:
+            repo_token: "${{ secrets.GITHUB_TOKEN }}"
+            prerelease: false
+            files: |
+              go-proxy-*
