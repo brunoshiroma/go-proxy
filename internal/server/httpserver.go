@@ -2,15 +2,20 @@ package server
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"time"
 )
+
+type HttpServer struct {
+	useNewPipe bool
+	pipe       func(net.Conn, net.Conn)
+}
 
 type redirectError struct {
 	status   int
@@ -19,12 +24,9 @@ type redirectError struct {
 
 const HTTP_HANDLE_ERROR_STR = "ERROR handleHttpRequest %v"
 
-var (
-	httpClient = &http.Client{
-		CheckRedirect: handleRedirect,
-	}
-	tcpTimeoutSecs int32 = 30
-)
+var httpClient = &http.Client{
+	CheckRedirect: handleRedirect,
+}
 
 func (e *redirectError) Error() string {
 	return fmt.Sprintf("%v %v", e.status, e.location)
@@ -33,7 +35,7 @@ func (e *redirectError) Error() string {
 /*
 ReadConn read all the data on conn, and return the bytes
 */
-func ReadConn(conn net.Conn) ([]byte, error) {
+func (s *HttpServer) ReadConn(conn net.Conn) ([]byte, error) {
 
 	if conn == nil {
 		return nil, nil
@@ -55,60 +57,6 @@ func ReadConn(conn net.Conn) ([]byte, error) {
 	return bufferToWrite, nil
 }
 
-func pipe(source net.Conn, dest net.Conn) {
-	var (
-		read int
-		err  error
-	)
-	source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
-
-	defer source.Close()
-	defer dest.Close()
-	buffer := make([]byte, 1024*1024)
-
-	for {
-
-		read, err = source.Read(buffer)
-
-		if err != nil {
-			if err == io.EOF {
-				log.Printf("INFO EOF")
-			} else if strings.Contains(err.Error(), "poll.DeadlineExceededError") {
-				log.Printf("INFO timeout")
-			} else {
-				log.Printf("ERROR on reading from tcp %#v src=%#v dst=%#v", err, source.RemoteAddr().String(), dest.RemoteAddr().String())
-			}
-			break
-		}
-
-		if read <= 0 {
-			time.Sleep(time.Millisecond * 100)
-			continue
-		}
-		source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
-
-		bufferToWrite := make([]byte, read)
-		copy(bufferToWrite, buffer)
-		dest.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
-		_, err := dest.Write(bufferToWrite)
-
-		bufferToWrite = nil
-		//buffer = nil
-
-		if err != nil {
-			if err != io.EOF {
-				log.Printf("Error on writing on remote host %v", err)
-				return
-			}
-			source.Close()
-			dest.Close()
-			break
-		}
-
-	}
-
-}
-
 func handleRedirect(req *http.Request, via []*http.Request) error {
 	//handling redirect
 	if req.Response.StatusCode == 301 || req.Response.StatusCode == 302 {
@@ -128,11 +76,11 @@ func handleRedirect(req *http.Request, via []*http.Request) error {
 	return nil
 }
 
-func handleHTTPRequest(conn net.Conn, requestString string) {
+func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 
 	defer conn.Close()
 
-	request, err := parseHttpRequestString(requestString)
+	request, err := s.parseHttpRequestString(requestString)
 
 	if err != nil {
 		log.Printf(HTTP_HANDLE_ERROR_STR, err)
@@ -180,7 +128,7 @@ func handleHTTPRequest(conn net.Conn, requestString string) {
 
 }
 
-func parseHttpRequestString(requestString string) (request *http.Request, err error) {
+func (s *HttpServer) parseHttpRequestString(requestString string) (request *http.Request, err error) {
 	stringParts := strings.SplitN(requestString, "\n", -1)
 	stringConnect := strings.Split(stringParts[0], " ")
 
@@ -212,8 +160,9 @@ func parseHttpRequestString(requestString string) (request *http.Request, err er
 	return
 }
 
-func handleConnection(conn net.Conn) {
-	bytes, err := ReadConn(conn)
+func (s *HttpServer) handleConnection(conn net.Conn) {
+	defer handlePanic()
+	bytes, err := s.ReadConn(conn)
 	if err != nil {
 		log.Printf("ERROR on handleConnection %v", err)
 		conn.Close()
@@ -229,28 +178,37 @@ func handleConnection(conn net.Conn) {
 			bytes = nil
 			stringParts = nil
 
-			handleProxyConn(conn, stringConnect[1])
+			s.handleProxyConn(conn, stringConnect[1])
 		} else { // http
-			handleHTTPRequest(conn, stringRequest)
+			s.handleHTTPRequest(conn, stringRequest)
 		}
 	}
 
 }
 
-func handleProxyConn(source net.Conn, dest string) {
+func (s *HttpServer) handleProxyConn(source net.Conn, dest string) {
 	remoteConn, err := net.DialTimeout("tcp", dest, time.Second*30)
 
 	if err != nil {
 		log.Printf("ERROR handleProxyConn %v", err)
 	} else {
-		go pipe(source, remoteConn)
-		go pipe(remoteConn, source)
+		go s.pipe(source, remoteConn)
+		go s.pipe(remoteConn, source)
 	}
 }
 
 /*InitHTTP start the http proxy server
  */
-func InitHTTP(host string, port uint16) {
+func (s *HttpServer) InitHTTP(host string, port uint16, useNewPipe bool) {
+	s.useNewPipe = useNewPipe
+
+	if useNewPipe {
+		s.pipe = newPipe
+		log.Println("using the new pipe")
+	} else {
+		s.pipe = pipe
+		log.Println("using the old pipe")
+	}
 
 	l, err := net.Listen("tcp4", fmt.Sprintf("%s:%d", host, port))
 
@@ -268,10 +226,17 @@ func InitHTTP(host string, port uint16) {
 			if err != nil {
 				log.Printf("ERROR ON ACCEPT %v", err)
 			} else {
-				go handleConnection(conn)
+				go s.handleConnection(conn)
 			}
 
 		}
 
+	}
+}
+
+func handlePanic() {
+	if panicError := recover(); panicError != nil {
+		log.Printf("PANIC RECOVER %s\n", panicError)
+		log.Println(string(debug.Stack()))
 	}
 }

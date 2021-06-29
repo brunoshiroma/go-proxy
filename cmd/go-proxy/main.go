@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-
+	var useNewPipe bool
 	log.Printf("Starting go-proxy on %s/%s", runtime.GOOS, runtime.GOARCH)
 
 	port, isSet := os.LookupEnv("PORT")
@@ -37,9 +37,16 @@ func main() {
 
 	uintPort, err := strconv.ParseUint(port, 10, 16)
 
+	useNewPipeStr, isSet := os.LookupEnv("NEW_PIPE")
+
+	if isSet && useNewPipeStr == "true" {
+		useNewPipe = true
+	}
+
 	if err != nil {
 		log.Fatalf("ERROR PORT %v", err)
 	}
 
-	server.InitHTTP(host, uint16(uintPort))
+	htpServer := server.HttpServer{}
+	htpServer.InitHTTP(host, uint16(uintPort), useNewPipe)
 }

@@ -7,7 +7,8 @@ import (
 )
 
 func TestReadConn(t *testing.T) {
-	bytes, error := server.ReadConn(nil)
+	httpServer := server.HttpServer{}
+	bytes, error := httpServer.ReadConn(nil)
 	if error != nil {
 		t.Errorf(error.Error())
 	} else if bytes != nil {
