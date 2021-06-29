@@ -84,48 +84,45 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 
 	if err != nil {
 		log.Printf(HTTP_HANDLE_ERROR_STR, err)
-	} else {
+		return
+	}
+	log.Printf("HTTP REQUEST %s", request.URL)
+	response, err := httpClient.Do(request)
 
-		log.Printf("HTTP REQUEST %s", request.URL)
-		response, err := httpClient.Do(request)
-
-		if err != nil {
-
-			if data, ok := err.(*url.Error); ok {
-				if e, ok := data.Err.(*redirectError); ok {
-					conn.Write([]byte(fmt.Sprintf("%s %d\r\n", "HTTP/1.0", e.status)))
-					conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", "Location", e.location)))
-				} else {
-					log.Printf(HTTP_HANDLE_ERROR_STR, err)
-				}
-			} else {
-				log.Printf(HTTP_HANDLE_ERROR_STR, err)
-			}
-
-		} else {
-
-			defer response.Body.Close()
-			body, err := ioutil.ReadAll(response.Body)
-
-			if err != nil {
-				log.Printf(HTTP_HANDLE_ERROR_STR, err)
-			} else {
-
-				conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
-
-				for header := range response.Header {
-					conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", header, response.Header.Get(header))))
-				}
-
-				conn.Write([]byte("\r\n"))
-				conn.Write(body)
-
-			}
-
-		}
-
+	if err != nil {
+		handleRedirectError(err, conn)
+		return
 	}
 
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+
+	if err != nil {
+		log.Printf(HTTP_HANDLE_ERROR_STR, err)
+		return
+	}
+
+	conn.Write([]byte(fmt.Sprintf("%s %d\r\n", response.Proto, response.StatusCode)))
+
+	for header := range response.Header {
+		conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", header, response.Header.Get(header))))
+	}
+
+	conn.Write([]byte("\r\n"))
+	conn.Write(body)
+}
+
+func handleRedirectError(err error, conn net.Conn) {
+	if data, ok := err.(*url.Error); ok {
+		if e, ok := data.Err.(*redirectError); ok {
+			conn.Write([]byte(fmt.Sprintf("%s %d\r\n", "HTTP/1.0", e.status)))
+			conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", "Location", e.location)))
+		} else {
+			log.Printf(HTTP_HANDLE_ERROR_STR, err)
+		}
+	} else {
+		log.Printf(HTTP_HANDLE_ERROR_STR, err)
+	}
 }
 
 func (s *HttpServer) parseHttpRequestString(requestString string) (request *http.Request, err error) {
