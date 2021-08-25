@@ -17,3 +17,9 @@ clean:
 
 deep-clean: clean
 	go clean -modcache
+
+test:
+	go test -cover -coverprofile=coverage.out ./...
+
+test-with-report: test
+	go tool cover -html=coverage.out
