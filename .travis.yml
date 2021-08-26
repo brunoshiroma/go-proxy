@@ -1,9 +1,9 @@
-dist: bionic
+dist: focal
 
 language: go
 
 go:
-  - "1.14.6"
+  - "1.17"
 
 #FROM https://github.com/openhab/openhab-docker/blob/c5e586be529a9d3645e91962eba1ae20c3067cf8/.travis.yml#L16-L28
 before_install:
@@ -52,7 +52,7 @@ jobs:
       os: linux
       arch: amd64
       script:
-        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+        - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
         - docker buildx build --platform linux/arm/v7 -t brunoshiroma/go-proxy:armv7-latest --push .
         - docker buildx build --platform linux/arm/v6 -t brunoshiroma/go-proxy:armv6-latest --push .
         - docker buildx build --platform linux/amd64 -t brunoshiroma/go-proxy:amd64-latest --push .
