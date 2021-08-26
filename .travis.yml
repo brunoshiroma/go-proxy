@@ -37,8 +37,9 @@ jobs:
         - mkdir -vp ~/.docker/cli-plugins/
         - curl --silent -L "https://github.com/docker/buildx/releases/download/v0.3.0/buildx-v0.3.0.linux-amd64" > ~/.docker/cli-plugins/docker-buildx
         - chmod a+x ~/.docker/cli-plugins/docker-buildx
-        - docker buildx version
         - docker --version
+        - docker buildx version
+        - docker buildx create --use
         - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
         - docker buildx build --platform linux/arm/v7 -t brunoshiroma/go-proxy:armv7-latest --push .
         - docker buildx build --platform linux/arm/v6 -t brunoshiroma/go-proxy:armv6-latest --push .
