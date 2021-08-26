@@ -41,10 +41,4 @@ jobs:
         - docker buildx version
         - docker buildx create --use
         - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-        - docker buildx build --platform linux/arm/v7 -t brunoshiroma/go-proxy:armv7-latest --push .
-        - docker buildx build --platform linux/arm/v6 -t brunoshiroma/go-proxy:armv6-latest --push .
-        - docker buildx build --platform linux/amd64 -t brunoshiroma/go-proxy:amd64-latest --push .
-        - docker buildx build --platform linux/arm64/v8 -t brunoshiroma/go-proxy:aarch64-latest --push .
-        - docker buildx build --platform linux/386 -t brunoshiroma/go-proxy:386-latest --push .
-        - docker manifest create brunoshiroma/go-proxy:latest brunoshiroma/go-proxy:386-latest brunoshiroma/go-proxy:armv7-latest brunoshiroma/go-proxy:armv6-latest brunoshiroma/go-proxy:amd64-latest brunoshiroma/go-proxy:aarch64-latest
-        - docker manifest push brunoshiroma/go-proxy:latest
+        - docker buildx build --platform linux/arm64/v8,linux/arm/v7,linux/arm/v6,linux/386,linux/amd64 -t brunoshiroma/go-proxy:latest --push .
