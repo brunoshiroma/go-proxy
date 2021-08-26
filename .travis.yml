@@ -6,30 +6,24 @@ go:
   - "1.17"
 
 stages:
-  - compile
+  - build
   - test
   - deploy
 
 jobs:
   include:
-    - stage: compile
-      name: GO Compile
+    - stage: build
+      name: docker build
       os: linux
       arch: amd64
       script:
-          - go build cmd/go-proxy/main.go
+          - docker build .
     - stage: test
       name: GO Test
       os: linux
       arch: amd64
       script:
           - go test ./...
-    - stage: test
-      name: Docker build
-      os: linux
-      arch: amd64
-      script:
-          - docker buildx build --platform linux/amd64 .
     - stage: deploy
       name: Docker Build and Repository Push
       if: branch = main and type = push
