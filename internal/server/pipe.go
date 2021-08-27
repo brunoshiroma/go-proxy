@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-const tcp_timeout_secs int32 = 120
+const tcpTimeoutSecs int32 = 120
 
 func pipe(source net.Conn, dest net.Conn) {
 	var (
 		read int
 		err  error
 	)
-	source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcp_timeout_secs)))
+	source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
 
 	defer source.Close()
 	defer dest.Close()
@@ -40,11 +40,11 @@ func pipe(source net.Conn, dest net.Conn) {
 			time.Sleep(time.Millisecond * 100)
 			continue
 		}
-		source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcp_timeout_secs)))
+		source.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
 
 		bufferToWrite := make([]byte, read)
 		copy(bufferToWrite, buffer)
-		dest.SetDeadline(time.Now().Add(time.Second * time.Duration(tcp_timeout_secs)))
+		dest.SetDeadline(time.Now().Add(time.Second * time.Duration(tcpTimeoutSecs)))
 		_, err := dest.Write(bufferToWrite)
 
 		if err != nil {
