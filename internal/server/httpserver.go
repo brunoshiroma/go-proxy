@@ -13,7 +13,7 @@ import (
 )
 
 /*
-Http Server for proxy the connections.
+HttpServer server proxy the connections.
 Its handles http and https proxy connections
 */
 type HttpServer struct {
@@ -26,7 +26,7 @@ type redirectError struct {
 	location string
 }
 
-const http_handle_error_str = "ERROR handleHttpRequest %v"
+const httpHandleErrorStr = "ERROR handleHttpRequest %v"
 
 var httpClient = &http.Client{
 	CheckRedirect: handleRedirect,
@@ -85,7 +85,7 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 	request, err := s.parseHttpRequestString(requestString)
 
 	if err != nil {
-		log.Printf(http_handle_error_str, err)
+		log.Printf(httpHandleErrorStr, err)
 		return
 	}
 	log.Printf("HTTP REQUEST %s", request.URL)
@@ -100,7 +100,7 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 	body, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
-		log.Printf(http_handle_error_str, err)
+		log.Printf(httpHandleErrorStr, err)
 		return
 	}
 
@@ -120,10 +120,10 @@ func handleRedirectError(err error, conn net.Conn) {
 			conn.Write([]byte(fmt.Sprintf("%s %d\r\n", "HTTP/1.0", e.status)))
 			conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", "Location", e.location)))
 		} else {
-			log.Printf(http_handle_error_str, err)
+			log.Printf(httpHandleErrorStr, err)
 		}
 	} else {
-		log.Printf(http_handle_error_str, err)
+		log.Printf(httpHandleErrorStr, err)
 	}
 }
 
