@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+/*
+Http Server for proxy the connections.
+Its handles http and https proxy connections
+*/
 type HttpServer struct {
 	useNewPipe bool
 	pipe       func(net.Conn, net.Conn)
@@ -22,7 +26,7 @@ type redirectError struct {
 	location string
 }
 
-const HTTP_HANDLE_ERROR_STR = "ERROR handleHttpRequest %v"
+const http_handle_error_str = "ERROR handleHttpRequest %v"
 
 var httpClient = &http.Client{
 	CheckRedirect: handleRedirect,
@@ -46,13 +50,11 @@ func (s *HttpServer) ReadConn(conn net.Conn) ([]byte, error) {
 	read, err := conn.Read(fixedBuffer)
 	if err != nil {
 		log.Printf("ERROR readConn %v", err)
-		fixedBuffer = nil
 		return nil, err
 	}
 
 	bufferToWrite := make([]byte, read)
 	copy(bufferToWrite, fixedBuffer)
-	fixedBuffer = nil
 
 	return bufferToWrite, nil
 }
@@ -83,7 +85,7 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 	request, err := s.parseHttpRequestString(requestString)
 
 	if err != nil {
-		log.Printf(HTTP_HANDLE_ERROR_STR, err)
+		log.Printf(http_handle_error_str, err)
 		return
 	}
 	log.Printf("HTTP REQUEST %s", request.URL)
@@ -98,7 +100,7 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 	body, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
-		log.Printf(HTTP_HANDLE_ERROR_STR, err)
+		log.Printf(http_handle_error_str, err)
 		return
 	}
 
@@ -118,10 +120,10 @@ func handleRedirectError(err error, conn net.Conn) {
 			conn.Write([]byte(fmt.Sprintf("%s %d\r\n", "HTTP/1.0", e.status)))
 			conn.Write([]byte(fmt.Sprintf("%s: %s\r\n", "Location", e.location)))
 		} else {
-			log.Printf(HTTP_HANDLE_ERROR_STR, err)
+			log.Printf(http_handle_error_str, err)
 		}
 	} else {
-		log.Printf(HTTP_HANDLE_ERROR_STR, err)
+		log.Printf(http_handle_error_str, err)
 	}
 }
 
@@ -171,9 +173,6 @@ func (s *HttpServer) handleConnection(conn net.Conn) {
 			stringConnect := strings.Split(stringParts[0], " ")
 			log.Printf("CONNECT to %v", stringConnect[1])
 			conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-
-			bytes = nil
-			stringParts = nil
 
 			s.handleProxyConn(conn, stringConnect[1])
 		} else { // http
