@@ -1,0 +1,9 @@
+run:
+
+linters:
+  disable-all: true
+  enable:
+    - unused
+
+output:
+  format: colored-line-number

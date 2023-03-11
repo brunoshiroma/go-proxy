@@ -26,7 +26,7 @@ go run cmd/go-proxy/main.go
 ```
 
 ## Stress test
-Stress tests using [k6](https://k6.io), tests are located on folder k6.  
+Stress tests using [k6](https://k6.io), tests are located on folder k6.
 Running with docker ( with make )
 ```bash
 make run-k6-docker-http
@@ -40,3 +40,8 @@ GO_PROXY_PPROF_DEBUG=true #enable the PPROF profiling on 127.0.0.1:6060
 HOST=0.0.0.0 #set the host/ip to bind the listening proxy address
 PORT=8080 #set the port for the binding
 ```
+# pre-commit
+ * [pre-commit](https://pre-commit.com/)
+
+# Code Quality
+ * [golangci-lint](https://github.com/golangci/golangci-lint)
