@@ -4,6 +4,7 @@
 #golang
 pkg
 bin
+coverage.out
 
 #binary
 go-proxy
