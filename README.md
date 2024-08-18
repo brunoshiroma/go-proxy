@@ -5,7 +5,7 @@
 # Simple HTTPS Proxy - Written in Go
 Developed with go
 ```
-go version go1.15.3 linux/amd64
+go version go1.23.0 linux/amd64
 ```
 
 Simple HTTPS proxy, using CONNECT pattern
