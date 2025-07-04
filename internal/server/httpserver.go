@@ -124,7 +124,8 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 func isHealthCheck(request *http.Request, serverHostName string) bool {
 	host := request.Header.Get("Host")
 	log.Printf("Checking if request is healthcheck host header %s, method %s, Path %s", host, request.Method, request.URL.Path)
-	return serverHostName == host && request.Method == "GET" && request.URL.Path == "/health"
+	return serverHostName == host && request.Method == "GET" && request.URL.Path == "/health" ||
+		serverHostName == host && request.Method == "HEAD" && request.URL.Path == "/"
 }
 
 func handleRedirectError(err error, conn net.Conn) {
