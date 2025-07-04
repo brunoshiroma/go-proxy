@@ -91,7 +91,7 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 	}
 
 	if isHealthCheck(request, s.serverHostName) {
-		conn.Write([]byte("HTTP/1.1 200 OK"))
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
 		return
 	}
 
