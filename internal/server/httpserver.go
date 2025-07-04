@@ -17,8 +17,9 @@ HttpServer server proxy the connections.
 Its handles http and https proxy connections
 */
 type HttpServer struct {
-	useNewPipe bool
-	pipe       func(net.Conn, net.Conn)
+	useNewPipe     bool
+	pipe           func(net.Conn, net.Conn)
+	serverHostName string
 }
 
 type redirectError struct {
@@ -88,6 +89,12 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 		log.Printf(httpHandleErrorStr, err)
 		return
 	}
+
+	if isHealthCheck(request, s.serverHostName) {
+		conn.Write([]byte("HTTP/1.1 200 OK"))
+		return
+	}
+
 	log.Printf("HTTP REQUEST %s", request.URL)
 	response, err := httpClient.Do(request)
 
@@ -112,6 +119,12 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 
 	conn.Write([]byte("\r\n"))
 	conn.Write(body)
+}
+
+func isHealthCheck(request *http.Request, serverHostName string) bool {
+	host := request.Header.Get("Host")
+	log.Printf("Checking if request is healthcheck host header %s, method %s, Path %s", host, request.Method, request.URL.Path)
+	return serverHostName == host && request.Method == "GET" && request.URL.Path == "/health"
 }
 
 func handleRedirectError(err error, conn net.Conn) {
@@ -195,8 +208,9 @@ func (s *HttpServer) handleProxyConn(source net.Conn, dest string) {
 
 /*InitHTTP start the http proxy server
  */
-func (s *HttpServer) InitHTTP(host string, port uint16, useNewPipe bool) {
+func (s *HttpServer) InitHTTP(host string, port uint16, useNewPipe bool, serverHostName string) {
 	s.useNewPipe = useNewPipe
+	s.serverHostName = serverHostName
 
 	if useNewPipe {
 		s.pipe = newPipe

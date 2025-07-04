@@ -27,6 +27,11 @@ func main() {
 		host = "127.0.0.1"
 	}
 
+	serverHostName, isSet := os.LookupEnv("SERVER_HOSTNAME")
+	if !isSet {
+		serverHostName = "localhost"
+	}
+
 	debug, isSet := os.LookupEnv("GO_PROXY_PPROF_DEBUG")
 
 	if isSet && debug == "true" {
@@ -48,5 +53,5 @@ func main() {
 	}
 
 	htpServer := server.HttpServer{}
-	htpServer.InitHTTP(host, uint16(uintPort), useNewPipe)
+	htpServer.InitHTTP(host, uint16(uintPort), useNewPipe, serverHostName)
 }
