@@ -11,7 +11,7 @@ func TestHttpServer(t *testing.T) {
 	t.Run("Test ReadConn nil conn success", func(t *testing.T) {
 		bytes, error := httpServer.ReadConn(nil)
 		if error != nil {
-			t.Errorf(error.Error())
+			t.Errorf("Error %s", error.Error())
 		} else if bytes != nil {
 			t.Errorf("shold be nil, but is %v", bytes)
 		}

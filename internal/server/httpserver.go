@@ -91,7 +91,8 @@ func (s *HttpServer) handleHTTPRequest(conn net.Conn, requestString string) {
 	}
 
 	if isHealthCheck(request, s.serverHostName) {
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+		log.Printf("Sending 200 for healthcheck")
 		return
 	}
 
@@ -125,7 +126,7 @@ func isHealthCheck(request *http.Request, serverHostName string) bool {
 	host := request.Header.Get("Host")
 	log.Printf("Checking if request is healthcheck host header %s, method %s, Path %s", host, request.Method, request.URL.Path)
 	return serverHostName == host && request.Method == "GET" && request.URL.Path == "/health" ||
-		serverHostName == host && request.Method == "HEAD" && request.URL.Path == "/"
+		request.Method == "HEAD"
 }
 
 func handleRedirectError(err error, conn net.Conn) {
