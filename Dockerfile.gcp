@@ -1,4 +1,5 @@
 FROM golang:alpine AS build-base
+RUN apk update && apk upgrade
 RUN apk add build-base
 
 FROM build-base as build
@@ -7,7 +8,7 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' ./cmd/go-proxy/
 
 FROM alpine AS runtime
-
+RUN apk update && apk upgrade
 WORKDIR /proxy
 COPY --from=build /proxy/go-proxy .
 ENTRYPOINT ["./go-proxy"]
