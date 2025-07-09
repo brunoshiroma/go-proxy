@@ -39,42 +39,42 @@ jobs:
         - name: build mac arm64
           run: GOOS=darwin GOARCH=arm64 go build -o go-proxy-mac-arm64 cmd/go-proxy/main.go
         - name: Archive production artifacts Windows amd64
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: windows-amd64
             path: go-proxy-win-x64.exe
         - name: Archive production artifacts Windows i386
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: windows-i386
             path: go-proxy-win.exe
         - name: Archive production artifacts Linux amd64
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: linux-amd64
             path: go-proxy-linux-x64
         - name: Archive production artifacts Linux i386
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: linux-i386
             path: go-proxy-linux
         - name: Archive production artifacts Linux arm
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: linux-arm
             path: go-proxy-linux-arm
         - name: Archive production artifacts Linux arm64
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: linux-arm64
             path: go-proxy-linux-arm64
         - name: Archive production artifacts Mac amd64
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: mac-amd64
             path: go-proxy-mac-amd64
         - name: Archive production artifacts Mac arm64
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: mac-arm64
             path: go-proxy-mac-arm64
